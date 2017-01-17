@@ -1,0 +1,24 @@
+{
+  "name": "ucharts",
+  "version": "1.0.0",
+  "description": "A tiny charting library for browser",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PengJiyuan/ucharts.git"
+  },
+  "keywords": [
+    "canvas",
+    "chart",
+    "tiny"
+  ],
+  "author": "PengJiyuan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PengJiyuan/ucharts/issues"
+  },
+  "homepage": "https://github.com/PengJiyuan/ucharts#readme"
+}
