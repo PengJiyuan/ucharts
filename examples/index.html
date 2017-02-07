@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> example </title>
+	<style>
+		.main {
+			margin: 50px;
+			width: 500px;
+			height: 500px;
+			background-color: #ccc;
+		}
+	</style>
+</head>
+<body>
+
+<div class="main">
+	<canvas id="canvas"></canvas>
+</div>
+
+<script src="../dist/ucharts.js"></script>
+<script>
+	var mychart = ucharts.init({
+		element: document.getElementById('canvas'),
+    width: 500,
+    height: 500,
+    enableGlobalTranslate: false
+	});
+	mychart.setOption({
+		xAxis: {
+			data: ["C#", "PHP", "JS", "C", "C++"]
+		},
+		yAxis: {},
+		series: [{
+			type: 'bar',
+			barColor: '#ef8376',
+			data: [-0.11358, -0.622, 0.33, 0.44, 0.5]
+		}, {
+			type: 'bar',
+			barColor: '#ef8376',
+			data: [-0.158, -0.122, 0.53, 0.34, 0.666]
+		}, {
+			type: 'bar',
+			barColor: '#ef8376',
+			data: [-0.52, -0.422, 0.23, 0.64, 0.46666]
+		}],
+		boundaryGap: true,
+		backgroundColor: '#F3F3F3',
+		title: 'Test Title',
+		subTitle: 'SubTitle'
+	});
+</script>
+</body>
+</html>

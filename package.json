@@ -4,7 +4,8 @@
   "description": "A tiny charting library for browser",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rm -rf dist && webpack --color --progress && uglifyjs dist/ucharts.js --mangle -o 'dist/ucharts.min.js'",
+    "dev": "rm -rf dist && webpack --watch"
   },
   "repository": {
     "type": "git",
@@ -20,5 +21,12 @@
   "bugs": {
     "url": "https://github.com/PengJiyuan/ucharts/issues"
   },
-  "homepage": "https://github.com/PengJiyuan/ucharts#readme"
+  "homepage": "https://github.com/PengJiyuan/ucharts#readme",
+  "devDependencies": {
+    "babel-core": "^6.21.0",
+    "babel-loader": "^6.2.10",
+    "babel-preset-es2015": "^6.22.0",
+    "json-loader": "^0.5.4",
+    "webpack": "^1.14.0"
+  }
 }

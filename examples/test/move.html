@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> example </title>
+	<style>
+		.main {
+			margin: 50px;
+			width: 500px;
+			height: 500px;
+			background-color: #ccc;
+		}
+	</style>
+</head>
+<body>
+
+<div class="main">
+	<canvas id="canvas"></canvas>
+</div>
+
+<script>
+	var canvas = document.getElementById('canvas');
+	var ctx = canvas.getContext('2d');
+	var length = 172;
+
+	function move() {
+		if(length <= 0) {
+			return;
+		}
+		ctx.clearRect(0, 0, 500, 500);
+		ctx.setLineDash([172, 172]);
+		ctx.lineDashOffset = length--;
+		ctx.moveTo(30, 30);
+		ctx.lineTo(200, 30);
+		ctx.stroke();
+		requestAnimationFrame(move);
+	}
+	move()
+</script>
+</body>
+</html>
