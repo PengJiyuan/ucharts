@@ -56,9 +56,9 @@
 
 	var Line = __webpack_require__(3);
 
-	var Bar = __webpack_require__(4);
+	var Bar = __webpack_require__(5);
 
-	var ToolTip = __webpack_require__(5);
+	var ToolTip = __webpack_require__(6);
 
 	var expandShapes = __webpack_require__(7);
 
@@ -1548,7 +1548,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	var utils = __webpack_require__(6);
+	var utils = __webpack_require__(4);
 
 	function Line(world, stage) {
 		this.world = world;
@@ -1674,10 +1674,31 @@
 
 /***/ },
 /* 4 */
+/***/ function(module, exports) {
+
+	
+	var utils = {
+
+		getPos: function(e) {
+	    var e = e || event;
+	    var x = e.pageX,
+	      y = e.pageY;
+	    return {
+	      x: x, 
+	      y: y
+	    };
+	  }
+
+	};
+
+	module.exports = utils;
+
+/***/ },
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	var utils = __webpack_require__(6);
+	var utils = __webpack_require__(4);
 
 	function Bar(world, stage) {
 		this.world = world;
@@ -1786,7 +1807,7 @@
 	module.exports = Bar;
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	
@@ -1822,27 +1843,6 @@
 	};
 
 	module.exports = ToolTip;
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-	
-	var utils = {
-
-		getPos: function(e) {
-	    var e = e || event;
-	    var x = e.pageX,
-	      y = e.pageY;
-	    return {
-	      x: x, 
-	      y: y
-	    };
-	  }
-
-	};
-
-	module.exports = utils;
 
 /***/ },
 /* 7 */
