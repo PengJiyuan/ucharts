@@ -92,6 +92,7 @@
 	};
 
 	uchartsPrototype.setOption = function(option) {
+		this.option = option;
 		var series = option.series,
 			xAxis = option.xAxis,
 			yAxis = option.yAxis,
@@ -150,6 +151,17 @@
 			this.stage.show();
 		}
 	};
+
+	uchartsPrototype.resize = function(width, height) {
+		this.world.element.width = width;
+		this.world.element.height = height;
+		this.world.width = width;
+		this.world.height = height;
+		this.world.objects = [];
+		this.world._objects = [];
+		this.setOption(this.option);
+		this.stage.redraw();
+	} 
 
 	var ucharts = {
 		version: ("1.0.0")
@@ -1957,8 +1969,14 @@
 			if(width <= 300) {
 				sx = 100;
 				sy = 40;
+			} else if(width <= 500) {
+				sx = 300;
+				sy = 16;
+			} else if(width <= 800) {
+				sx = 400;
+				sy = 16;
 			} else {
-				sx = 240;
+				sx = 500;
 				sy = 16;
 			}
 			count = Math.floor((width - sx) / 80);

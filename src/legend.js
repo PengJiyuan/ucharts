@@ -15,8 +15,14 @@ Legend.prototype = {
 		if(width <= 300) {
 			sx = 100;
 			sy = 40;
+		} else if(width <= 500) {
+			sx = 300;
+			sy = 16;
+		} else if(width <= 800) {
+			sx = 400;
+			sy = 16;
 		} else {
-			sx = 240;
+			sx = 500;
 			sy = 16;
 		}
 		count = Math.floor((width - sx) / 80);

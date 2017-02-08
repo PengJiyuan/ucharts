@@ -3,8 +3,15 @@
 <head>
 	<title> example </title>
 	<style>
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+		}
 		.main {
-			margin: 50px;
+			margin: 0;
 			width: 500px;
 			height: 500px;
 			background-color: #ccc;
@@ -21,11 +28,12 @@
 <script>
 	var mychart = ucharts.init({
 		element: document.getElementById('canvas'),
-    width: 500,
-    height: 500,
+    width: document.body.clientWidth,
+    height: document.body.clientHeight,
     enableGlobalTranslate: false
 	});
-	mychart.setOption({
+
+	var option = {
 		xAxis: {
 			data: ["C#", "PHP", "JS", "C", "C++"]
 		},
@@ -74,7 +82,12 @@
 		backgroundColor: '#F3F3F3',
 		title: '城市编程语言人数',
 		subTitle: '单位(人)'
-	});
+	};
+	mychart.setOption(option);
+
+	window.onresize = function() {
+		mychart.resize(document.body.clientWidth, document.body.clientHeight);
+	}
 </script>
 </body>
 </html>
