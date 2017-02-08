@@ -36,6 +36,8 @@ uchartsPrototype.initStructure = function() {
   	enableGlobalTranslate: this.enableGlobalTranslate
   });
   expandShapes(this.world);
+  this.tooltip = new ToolTip();
+  this.tooltip.init();
 };
 
 uchartsPrototype.setOption = function(option) {
@@ -47,7 +49,7 @@ uchartsPrototype.setOption = function(option) {
 		backgroundColor = option.backgroundColor,
 		subTitle = option.subTitle,
 		boundaryGap = option.boundaryGap ? option.boundaryGap : true;
- 
+
  	// draw bar first
 	series.sort(function(a, b) {
 		return a.type > b.type;
@@ -75,21 +77,21 @@ uchartsPrototype.setOption = function(option) {
 	});
 	var bar = new Bar(this.world, this.stage);
 	var line = new Line(this.world, this.stage);
-	var tooltip = new ToolTip();
+	
 	var legend = new Legend(this.world, this.stage);
-	tooltip.init();
 	legend.init(series);
 
 	// calculate coordinates
 	if(xAxis && series) {
+		var _this = this;
 		this.stage.addChild(coord);
 		series.forEach(function(item, index) {
 			switch(item.type) {
 				case 'bar':
-					bar.init(option, index, coord, tooltip);
+					bar.init(option, index, coord, _this.tooltip);
 					return;
 				case 'line':
-					line.init(option, index, coord, tooltip);
+					line.init(option, index, coord, _this.tooltip);
 					return;
 				default:
 					return;
