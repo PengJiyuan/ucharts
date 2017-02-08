@@ -58,6 +58,12 @@
 
 	var Bar = __webpack_require__(4);
 
+	var ToolTip = __webpack_require__(5);
+
+	var expandShapes = __webpack_require__(7);
+
+	var Legend = __webpack_require__(9);
+
 	function UCharts(settings) {
 
 		this.element = settings.element;
@@ -82,6 +88,7 @@
 	  	height: this.height,
 	  	enableGlobalTranslate: this.enableGlobalTranslate
 	  });
+	  expandShapes(this.world);
 	};
 
 	uchartsPrototype.setOption = function(option) {
@@ -90,7 +97,13 @@
 			yAxis = option.yAxis,
 			title = option.title,
 			backgroundColor = option.backgroundColor,
-			subTitle = option.subTitle;
+			subTitle = option.subTitle,
+			boundaryGap = option.boundaryGap ? option.boundaryGap : true;
+	 
+	 	// draw bar first
+		series.sort(function(a, b) {
+			return a.type > b.type;
+		});
 
 		var coord = this.world.coord({
 			startX: 0,
@@ -102,7 +115,7 @@
 
 			},
 			series: series,
-			boundaryGap: true,
+			boundaryGap: boundaryGap,
 			backgroundColor: backgroundColor,
 			title: title,
 			subTitle: subTitle
@@ -113,16 +126,22 @@
 			zindex: 0
 		});
 		var bar = new Bar(this.world, this.stage);
+		var line = new Line(this.world, this.stage);
+		var tooltip = new ToolTip();
+		var legend = new Legend(this.world, this.stage);
+		tooltip.init();
+		legend.init(series);
+
 		// calculate coordinates
-		if(xAxis && yAxis) {
+		if(xAxis && series) {
 			this.stage.addChild(coord);
 			series.forEach(function(item, index) {
 				switch(item.type) {
 					case 'bar':
-						bar.init(option, index, coord);
+						bar.init(option, index, coord, tooltip);
 						return;
 					case 'line':
-						line.init(option, index, coord);
+						line.init(option, index, coord, tooltip);
 						return;
 					default:
 						return;
@@ -400,6 +419,8 @@
 	        case 'rectangle':
 	        case 'image':
 	        case 'text':
+	        case 'coord':
+	        case 'textColor':
 	          return !!(xRight && xLeft && yTop && yBottom);
 	        case 'arc':
 	          var cx = this.x, // center x
@@ -588,7 +609,8 @@
 	          dash = settings.dash,
 	          lineCap = settings.lineCap,
 	          lineJoin = settings.lineJoin,
-	          strokeColor = settings.strokeColor;
+	          strokeColor = settings.strokeColor,
+	          smooth = settings.smooth;
 
 	        canvas.save();
 	        canvas.translate(-0.5, -0.5);
@@ -608,9 +630,46 @@
 	        if(lineJoin) {
 	          canvas.lineJoin = lineJoin;
 	        }
-	        matrix.forEach(function(point, i) {
-	          i === 0 ? canvas.moveTo(point.x, point.y) : canvas.lineTo(point.x, point.y);
-	        });
+	        if(smooth) {
+	          var getCtrlPoint = function(ps, i, a, b) {
+	            var pAx, pAy, pBx, pBy;
+	            if(!a || !b){
+	              a = 0.25;
+	              b = 0.25;
+	            }
+	            if( i < 1){
+	              pAx = ps[0].x + (ps[1].x - ps[0].x)*a;
+	              pAy = ps[0].y + (ps[1].y - ps[0].y)*a;
+	            }else{
+	              pAx = ps[i].x + (ps[i+1].x - ps[i-1].x)*a;
+	              pAy = ps[i].y + (ps[i+1].y - ps[i-1].y)*a;
+	            }
+	            if(i > ps.length-3){
+	              var last = ps.length-1;
+	              pBx = ps[last].x - (ps[last].x - ps[last-1].x) * b;
+	              pBy = ps[last].y - (ps[last].y - ps[last-1].y) * b;
+	            }else{
+	              pBx = ps[i + 1].x - (ps[i + 2].x - ps[i].x) * b;
+	              pBy = ps[i + 1].y - (ps[i + 2].y - ps[i].y) * b;
+	            }
+	            return {
+	              pA:{x: pAx, y: pAy},
+	              pB:{x: pBx, y: pBy}
+	            };
+	          };
+	          for(var i = 0; i < matrix.length; i++) {
+	            if(i === 0){
+	              canvas.moveTo(matrix[i].x, matrix[i].y);
+	            }else{
+	              var cMatrix = getCtrlPoint(matrix, i-1);
+	              canvas.bezierCurveTo(cMatrix.pA.x, cMatrix.pA.y, cMatrix.pB.x, cMatrix.pB.y, matrix[i].x, matrix[i].y);
+	            }
+	          }
+	        } else {
+	          matrix.forEach(function(point, i) {
+	            i === 0 ? canvas.moveTo(point.x, point.y) : canvas.lineTo(point.x, point.y);
+	          });
+	        }
 	        canvas.stroke();
 	        canvas.closePath();
 	        canvas.restore();
@@ -824,27 +883,27 @@
 
 	      var _this = this;
 	      var canvas = _this.canvas,
-	      startX = this.startX = settings.startX,
-	      startY = this.startY = settings.startY,
-	      width = settings.width,
-	      height = settings.height,
-	      xAxis = settings.xAxis,
-	      //yAxis = settings.yAxis,
-	      series = settings.series,
-	      boundaryGap = settings.boundaryGap,
-	      title = settings.title,
-	      subTitle = settings.subTitle;
+	        startX = this.startX = settings.startX,
+	        startY = this.startY = settings.startY,
+	        width = settings.width,
+	        height = settings.height,
+	        xAxis = settings.xAxis,
+	        //yAxis = settings.yAxis,
+	        series = settings.series,
+	        boundaryGap = settings.boundaryGap,
+	        title = settings.title,
+	        subTitle = settings.subTitle;
 
 	      var TO_TOP = 20;
 
-	      var margin = width / 10;
+	      var margin = width <= 300 ? width / 5 : width / 10;
 	      var xCount, yCount, xSpace, ySpace, xLength, yLength, xGapLength, yGapLength, upCount, downCount, ygl;
 
 	      // yAxis
 	      var maxY = _this.utils.getMaxMin(false, series, xAxis).max,
-	      minY = _this.utils.getMaxMin(false, series, xAxis).min,
-	      gm = _this.utils.calculateCoord(maxY, minY),
-	      gap = gm.gap;
+	        minY = _this.utils.getMaxMin(false, series, xAxis).min,
+	        gm = _this.utils.calculateCoord(maxY, minY),
+	        gap = gm.gap;
 	      //retMax = gm.max;
 
 	      yLength = height - 2 * margin;
@@ -882,14 +941,14 @@
 
 	        // draw title
 	        canvas.save();
-	        canvas.font = '24px serif';
+	        canvas.font = width <= 300 ? '18px serif' : '24px serif';
 	        canvas.textAlign = 'left';
 	        canvas.textBaseline = 'top';
 	        canvas.fillText(title, margin / 2, 10);
 	        canvas.restore();
 	        canvas.save();
 	        canvas.fillStyle = '#666666';
-	        canvas.font = '14px serif';
+	        canvas.font = width <= 300 ? '10px serif' : '14px serif';
 	        canvas.textAlign = 'left';
 	        canvas.textBaseline = 'top';
 	        canvas.fillText(subTitle, margin / 2 + 4, 40);
@@ -925,10 +984,10 @@
 	          canvas.closePath();
 	          // draw label
 	          canvas.save();
-	          canvas.font = '15px serif';
+	          canvas.font = '12px serif';
 	          canvas.textAlign = 'right';
 	          canvas.textBaseline = 'middle';
-	          canvas.fillText( _this.utils.formatFloat(gap*ii), -15, -yGapLength * ii);
+	          canvas.fillText( _this.utils.formatFloat(gap*ii), -10, -yGapLength * ii);
 	          canvas.restore();
 	        }
 
@@ -949,10 +1008,12 @@
 	          canvas.closePath();
 	          // draw label
 	          canvas.save();
-	          canvas.font = '15px serif';
+	          canvas.font = '12px serif';
 	          canvas.textAlign = 'right';
 	          canvas.textBaseline = 'middle';
-	          canvas.fillText( _this.utils.formatFloat(-gap*iii), -15, yGapLength * iii);
+	          if(iii !== 0) {
+	            canvas.fillText( _this.utils.formatFloat(-gap*iii), -10, yGapLength * iii);
+	          }
 	          canvas.restore();
 	        }
 
@@ -1003,7 +1064,8 @@
 	        downCount: downCount,
 	        gap: gap,
 	        margin: margin,
-	        TO_TOP: TO_TOP
+	        TO_TOP: TO_TOP,
+	        boundaryGap: boundaryGap
 	      });
 	    };
 
@@ -1483,7 +1545,10 @@
 
 /***/ },
 /* 3 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var utils = __webpack_require__(6);
 
 	function Line(world, stage) {
 		this.world = world;
@@ -1492,19 +1557,128 @@
 
 	Line.prototype = {
 
-		init: function(option) {
+		init: function(option, index, coord, tooltip) {
+			var stage = this.stage;
+			var world = this.world;
+			var dom = tooltip.getDom();
+			var element = stage.element;
+			var _series = option.series[index];
 
+			var xAxis = option.xAxis;
+			// coordinate system -- length of each xAxis interval
+			var xGapLength = this.xGapLength =  coord.xGapLength;
+			// coordinate system -- length of each yAxis interval
+			var yGapLength = this.yGapLength = coord.yGapLength;
+			var upCount = this.upCount = coord.upCount;
+			var downCount = this.downCount = coord.downCount;
+			var gap = this.gap = coord.gap;
+			var margin = this.margin = coord.margin;
+			var upLength = this.upLength = yGapLength * upCount;
+			var downLength = this.downLength = yGapLength * downCount;
+			var TO_TOP = this.TO_TOP = coord.TO_TOP;
+			var format = this.formatFloat = this.world.utils.formatFloat;
+			var boundaryGap = this.boundaryGap = coord.boundaryGap;
+			var matrix = this.getmMatrix(_series.data);
+
+			/*********/
+			var lineColor = _series.color,
+				dash = _series.dash ? _series.dash : [0, 0],
+				lineJoin = _series.lineJoin,
+				smooth = _series.smooth;
+
+			stage.addChild(
+				world.line({
+					matrix: matrix,
+					lineWidth: 2,
+					strokeColor: lineColor,
+					dash: dash,
+					lineJoin: lineJoin,
+					smooth: smooth
+				}).config({
+					fixed: true,
+					changeIndex: false,
+					zindex: 2
+				})
+			);
+
+			// draw arc
+			matrix.forEach(function(m, i) {
+				var arc = world.arc({
+					x: m.x,
+					y: m.y,
+					radius: 3,
+					color: lineColor,
+					style: 'fill'
+				}).config({
+					drag: false,
+					changeIndex: false,
+					zindex: 3
+				}).on('mouseenter mousemove', function() {
+					//set tooltip value
+					tooltip.setValue({
+						title: _series.name,
+						color: lineColor,
+						name: xAxis.data[i],
+						value: _series.data[i]
+					});
+
+					dom.style.display = 'block';
+					var x = utils.getPos().x + 20;
+					var y = utils.getPos().y + 20;
+					dom.style.left = x + 'px';
+					dom.style.top = y + 'px';
+
+					arc.radius = 8;
+					element.style.cursor = 'pointer';
+					stage.redraw();
+				}).on('mouseleave', function() {
+					dom.style.display = 'none';
+					arc.radius = 3;
+					element.style.cursor = 'default';
+					stage.redraw();
+				});
+				stage.addChild(arc);
+			});
+			
+		},
+
+		getmMatrix: function(data) {
+			var format = this.formatFloat;
+			var _this = this;
+			var up = format(this.upCount*this.gap);
+			var down = format(this.downCount*this.gap);
+			var coordinates = [], heights = [], coordinate, height, x, y;
+			data.forEach(function(item) {
+				height = item >= 0 ? (item / up) * _this.upLength : (item / down) * _this.downLength;
+				heights.push(height);
+			});
+			if(this.boundaryGap) {
+				heights.forEach(function(item, index) {
+					coordinate = {};
+					x = _this.margin + _this.xGapLength / 2 + _this.xGapLength*index;
+					y = _this.upLength - item + _this.margin + _this.TO_TOP;
+					coordinate = {
+						x: x,
+						y: y
+					};
+					coordinates.push(coordinate);
+				});
+			} else {
+
+			}
+			return coordinates;
 		}
-
 	};
 
 	module.exports = Line;
 
 /***/ },
 /* 4 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	
+	var utils = __webpack_require__(6);
+
 	function Bar(world, stage) {
 		this.world = world;
 		this.stage = stage;
@@ -1512,20 +1686,19 @@
 
 	Bar.prototype = {
 
-		init: function(option, index, coord) {
+		init: function(option, index, coord, tooltip) {
 			var stage = this.stage;
 			var world = this.world;
+			var element = stage.element;
 			var _series = option.series[index];
+			var xAxis = option.xAxis;
+			var dom = tooltip.getDom();
 			// data's group count
 			var barCount = this.getBarCount(option.series);
 			// coordinate system -- length of xAxis
 			var xLength = this.xLength = coord.xLength;
 			// coordinate system -- length of yAxis
 			var yLength = this.yLength = coord.yLength;
-			// coordinate system -- count of xAxis interval
-			var xSpace = coord.xSpace;
-			// coordinate system -- count of yAxis interval
-			var ySpace = coord.ySpace;
 			// coordinate system -- length of each xAxis interval
 			var xGapLength = coord.xGapLength;
 			// coordinate system -- length of each yAxis interval
@@ -1543,25 +1716,44 @@
 			var BAR_TO_LEFT = BAR_TO_RIGHT = 0.1 * xGapLength;
 			var BAR_GAP = 0.02 * xGapLength > 1 ? 0.02 * xGapLength : 1;
 			var barWidth = (xGapLength - BAR_TO_LEFT - BAR_TO_RIGHT - BAR_GAP * (barCount - 1) ) / barCount;
-			var barHeights = this.getBarHeight(_series.data);
+			var barInfos = this.getBarInfo(_series);
 
-			barHeights.forEach(function(item, i) {
-				stage.addChild(
-					world.rectangle({
-						startX: margin + xGapLength * i + BAR_TO_LEFT + index*(BAR_GAP + barWidth),
-						startY: item >= 0 ? margin + upLength - item + TO_TOP : margin + upLength + TO_TOP,
-						width: barWidth,
-						height: Math.abs(item),
-						fillColor: _series.barColor
-					}).config({
-						drag: false,
-						fixed: true,
-						changeIndex: false,
-						zindex: 1
-					}).on('mousedown', function() {
-						console.log(i)
-					})
-				);
+			barInfos.forEach(function(item, i) {
+				var bar = world.rectangle({
+					startX: margin + xGapLength * i + BAR_TO_LEFT + index*(BAR_GAP + barWidth),
+					startY: item.height >= 0 ? margin + upLength - item.height + TO_TOP - 1 : margin + upLength + TO_TOP,
+					width: barWidth,
+					height: Math.abs(item.height),
+					fillColor: _series.color
+				}).config({
+					drag: false,
+					fixed: true,
+					changeIndex: false,
+					zindex: 1
+				}).on('mouseenter mousemove', function() {
+					//set tooltip value
+					tooltip.setValue({
+						title: item.title,
+						color: _series.color,
+						name: xAxis.data[i],
+						value: item.value
+					});
+
+					dom.style.display = 'block';
+					bar.fillColor = 'red';
+					element.style.cursor = 'pointer';
+					var x = utils.getPos().x + 20;
+					var y = utils.getPos().y + 20;
+					dom.style.left = x + 'px';
+					dom.style.top = y + 'px';
+					stage.redraw();
+				}).on('mouseleave', function() {
+					dom.style.display = 'none';
+					bar.fillColor = _series.color;
+					element.style.cursor = 'default';
+					stage.redraw();
+				});
+				stage.addChild(bar);
 			});
 		},
 
@@ -1571,21 +1763,234 @@
 			}).length;
 		},
 
-		getBarHeight: function(data) {
+		getBarInfo: function(series) {
+			var data = series.data;
+			var name = series.name;
 			var format = this.formatFloat;
 			var _this = this;
 			var up = format(this.upCount*this.gap);
 			var down = format(this.downCount*this.gap);
-			var ret = [], height;
+			var ret = [], info, height;
 			data.forEach(function(item) {
+				info = {};
 				height = item >= 0 ? (item / up) * _this.upLength : (item / down) * _this.downLength;
-				ret.push(height);
+				info.title = name;
+				info.value = item;
+				info.height = height;
+				ret.push(info);
 			});
 			return ret;
 		}
 	};
 
 	module.exports = Bar;
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	
+	function ToolTip() {
+		this.dom = null;
+	}
+
+	ToolTip.prototype = {
+
+		init: function() {
+			this.initDom();
+		},
+
+		initDom: function() {
+			var style = 'position: absolute; display: none; border-style: solid; white-space: nowrap; z-index: 9999999; transition: left 0.4s cubic-bezier(0.23, 1, 0.32, 1), top 0.4s cubic-bezier(0.23, 1, 0.32, 1); background-color: rgba(50, 50, 50, 0.701961); border-width: 0px; border-color: rgb(51, 51, 51); border-radius: 4px; color: rgb(255, 255, 255); font-style: normal; font-variant: normal; font-weight: normal; font-stretch: normal; font-size: 14px; font-family: sans-serif; line-height: 21px; padding: 5px;';
+			this.dom = document.createElement('div');
+			this.dom.style = style;
+
+			this.dom.innerHTML = '';
+
+			document.body.appendChild(this.dom);
+		},
+
+		setValue: function(value) {
+			var innerhtml = value.title + '<br><span style="display:inline-block;margin-right:5px;border-radius:10px;width:9px;height:9px;background-color:' + value.color + '"></span>' + value.name + ' : ' + value.value + '';
+			this.dom.innerHTML = innerhtml;
+		},
+
+		getDom: function() {
+			return this.dom;
+		}
+
+	};
+
+	module.exports = ToolTip;
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	
+	var utils = {
+
+		getPos: function(e) {
+	    var e = e || event;
+	    var x = e.pageX,
+	      y = e.pageY;
+	    return {
+	      x: x, 
+	      y: y
+	    };
+	  }
+
+	};
+
+	module.exports = utils;
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	var textColor = __webpack_require__(8);
+	var LCL = __webpack_require__(2);
+
+	function expand(world) {
+		LCL.prototype.textColor = textColor.bind(world);
+	}
+
+	module.exports = expand;
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	
+	var textColor = function(settings) {
+
+	  var _this = this;
+
+	  var draw = function() {
+	    var canvas = _this.canvas,
+	      type = settings.type,
+	      startX = this.startX = settings.startX,
+	      startY = this.startY = settings.startY,
+	      height = this.height = 14,
+	      WIDTH = 24,
+	      radius = 4;
+	      color = settings.color,
+	      label = settings.label;
+
+	    canvas.save();
+	    canvas.translate(this.moveX, this.moveY);
+	    if(this.fixed) {
+	      canvas.translate(-_this.transX, -_this.transY);
+	    }
+	    if(type === 'bar') {
+	      // draw rect width radius
+	      canvas.fillStyle = color;
+	      canvas.beginPath();
+	      canvas.moveTo(startX + radius, startY);
+	      canvas.lineTo(startX + WIDTH - radius, startY);
+	      canvas.quadraticCurveTo(startX + WIDTH, startY, startX + WIDTH, startY + radius);
+	      canvas.lineTo(startX + WIDTH, startY + height - radius);
+	      canvas.quadraticCurveTo(startX + WIDTH, startY + height, startX + WIDTH - radius, startY + height);
+	      canvas.lineTo(startX + radius, startY + height);
+	      canvas.quadraticCurveTo(startX, startY + height, startX, startY + height - radius);
+	      canvas.lineTo(startX, startY + radius);
+	      canvas.quadraticCurveTo(startX, startY, startX + radius, startY);
+	      canvas.fill();
+	      canvas.closePath();
+	      canvas.fillStyle = '#6c6c6c';
+	      canvas.font = '12px serif';
+	      canvas.textAlign = 'left';
+	      canvas.textBaseline = 'top';
+	      canvas.fillText(label, startX + WIDTH + 4, startY);
+	    } else if(type === 'line') {
+	      canvas.beginPath();
+	      canvas.strokeStyle = color;
+	      canvas.lineWidth = 2;
+	      canvas.moveTo(startX, startY + 8);
+	      canvas.lineTo(startX + WIDTH, startY + 8);
+	      canvas.stroke();
+	      canvas.closePath();
+	      canvas.save();
+	      canvas.fillStyle = color;
+	      canvas.translate(startX + WIDTH/2, startY + 8);
+	      canvas.arc(0, 0, 5, 0, Math.PI*2);
+	      canvas.fill();
+	      canvas.restore();
+	      canvas.fillStyle = '#6c6c6c';
+	      canvas.font = '12px serif';
+	      canvas.textAlign = 'left';
+	      canvas.textBaseline = 'top';
+	      canvas.fillText(label, startX + WIDTH + 4, startY);
+	    }
+	    this.width = canvas.measureText(label).width + WIDTH + 4;
+	    
+	    canvas.restore();
+	  };
+
+	  return Object.assign({}, _this.display(settings), {
+	    type: 'textColor',
+	    draw: draw
+	  });
+	};
+
+	module.exports = textColor;
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	
+	function Legend(world, stage) {
+		this.world = world;
+		this.stage = stage;
+	}
+
+	Legend.prototype = {
+
+		init: function(series) {
+
+			var _this = this;
+			var width = this.world.width;
+			var sx, sy, startX, startY, count;
+			var turn = -1;
+			if(width <= 300) {
+				sx = 100;
+				sy = 40;
+			} else {
+				sx = 240;
+				sy = 16;
+			}
+			count = Math.floor((width - sx) / 80);
+
+			series.forEach(function(item, index) {
+				if( (index) % count === 0 ) {
+					turn++;
+				}
+				startX = sx + 80*(index - count*turn);
+				startY = sy + 20*turn;
+
+				_this.stage.addChild(
+					_this.world.textColor({
+						startX: startX,
+						startY: startY,
+						label: '代码表',
+						color: item.color,
+						type: item.type
+					}).config({
+						fixed: false,
+						drag: false,
+						zindex: 10
+					})
+				);
+
+			});
+
+		}
+
+	}
+
+	module.exports = Legend;
 
 /***/ }
 /******/ ]);

@@ -5,6 +5,12 @@ var Line = require('./charts/line/index');
 
 var Bar = require('./charts/bar/index');
 
+var ToolTip = require('./tooltip');
+
+var expandShapes = require('./expandshapes');
+
+var Legend = require('./legend');
+
 function UCharts(settings) {
 
 	this.element = settings.element;
@@ -29,6 +35,7 @@ uchartsPrototype.initStructure = function() {
   	height: this.height,
   	enableGlobalTranslate: this.enableGlobalTranslate
   });
+  expandShapes(this.world);
 };
 
 uchartsPrototype.setOption = function(option) {
@@ -37,7 +44,13 @@ uchartsPrototype.setOption = function(option) {
 		yAxis = option.yAxis,
 		title = option.title,
 		backgroundColor = option.backgroundColor,
-		subTitle = option.subTitle;
+		subTitle = option.subTitle,
+		boundaryGap = option.boundaryGap ? option.boundaryGap : true;
+ 
+ 	// draw bar first
+	series.sort(function(a, b) {
+		return a.type > b.type;
+	});
 
 	var coord = this.world.coord({
 		startX: 0,
@@ -49,7 +62,7 @@ uchartsPrototype.setOption = function(option) {
 
 		},
 		series: series,
-		boundaryGap: true,
+		boundaryGap: boundaryGap,
 		backgroundColor: backgroundColor,
 		title: title,
 		subTitle: subTitle
@@ -60,16 +73,22 @@ uchartsPrototype.setOption = function(option) {
 		zindex: 0
 	});
 	var bar = new Bar(this.world, this.stage);
+	var line = new Line(this.world, this.stage);
+	var tooltip = new ToolTip();
+	var legend = new Legend(this.world, this.stage);
+	tooltip.init();
+	legend.init(series);
+
 	// calculate coordinates
-	if(xAxis && yAxis) {
+	if(xAxis && series) {
 		this.stage.addChild(coord);
 		series.forEach(function(item, index) {
 			switch(item.type) {
 				case 'bar':
-					bar.init(option, index, coord);
+					bar.init(option, index, coord, tooltip);
 					return;
 				case 'line':
-					line.init(option, index, coord);
+					line.init(option, index, coord, tooltip);
 					return;
 				default:
 					return;
