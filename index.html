@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title> example </title>
+	<style>
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+		}
+		.main {
+			margin: 0;
+			width: 500px;
+			height: 500px;
+			background-color: #ccc;
+		}
+	</style>
+</head>
+<body>
+
+<div class="main">
+	<canvas id="canvas"></canvas>
+</div>
+
+<script src="./dist/ucharts.min.js"></script>
+<script>
+	var mychart = ucharts.init({
+		element: document.getElementById('canvas'),
+    width: document.body.clientWidth,
+    height: document.body.clientHeight,
+    enableGlobalTranslate: false
+	});
+
+	var option = {
+		xAxis: {
+			data: ["C#", "PHP", "JS", "C", "C++"]
+		},
+		yAxis: {},
+		series: [{
+			name: '北京',
+			type: 'bar',
+			color: '#009393',
+			data: [11358, 5622, 23333, 4444, 5555]
+		}, {
+			name: '深圳',
+			type: 'bar',
+			color: '#C23531',
+			data: [12358, 4622, 13333, 6444, 8555]
+		}, {
+			name: '广州',
+			type: 'bar',
+			color: 'black',
+			data: [14358, 2622, 11333, 8444, 4555]
+		}, {
+			name: '上海',
+			type: 'line',
+			color: '#9f35ff',
+			smooth: true,
+			data: [12358, 4622, 13333, 6444, 8555]
+		}, {
+			name: '广州',
+			type: 'line',
+			color: '#003e3e',
+			smooth: true,
+			data: [14358, 2622, 11333, 8444, 4555]
+		}, {
+			name: '广州',
+			type: 'line',
+			color: '#003e3e',
+			smooth: true,
+			data: [2501, 2822, 13333, 1444, 2555]
+		}, {
+			name: 'dd',
+			type: 'bar',
+			color: '#003e3e',
+			smooth: true,
+			data: [2601, 5822, 3333, 8444, 4555]
+		}],
+		boundaryGap: false,
+		backgroundColor: '#F3F3F3',
+		title: '城市编程语言人数',
+		subTitle: '单位(人)'
+	};
+	mychart.setOption(option);
+
+	window.onresize = function() {
+		mychart.resize(document.body.clientWidth, document.body.clientHeight);
+	}
+</script>
+</body>
+</html>
