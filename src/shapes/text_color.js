@@ -70,4 +70,18 @@ var textColor = function(settings) {
   });
 };
 
-module.exports = textColor;
+module.exports = {
+  name: 'textColor',
+  shape: textColor,
+  isPointInner: function(_this, x, y) {
+    var ltx = _this.fixed ? 0 : this.transX;
+    var lty = _this.fixed ? 0 : this.transY;
+    var mx = _this.moveX,
+      my = _this.moveY;
+    var xRight = x > _this.startX + mx + ltx;
+    var xLeft = x < _this.startX + _this.width + mx + ltx;
+    var yTop = y > _this.startY + my + lty;
+    var yBottom = y < _this.startY + _this.height + my + lty;
+    return !!(xRight && xLeft && yTop && yBottom);
+  }
+};

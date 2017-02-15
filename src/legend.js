@@ -38,7 +38,7 @@ Legend.prototype = {
 				_this.world.textColor({
 					startX: startX,
 					startY: startY,
-					label: '代码表',
+					label: item.name,
 					color: item.color,
 					type: item.type
 				}).config({

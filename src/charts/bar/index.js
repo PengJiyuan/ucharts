@@ -41,6 +41,7 @@ Bar.prototype = {
 		var barInfos = this.getBarInfo(_series);
 
 		barInfos.forEach(function(item, i) {
+			var hover_color = world.color.lighten(_series.color, '10%');
 			var bar = world.rectangle({
 				startX: margin + xGapLength * i + BAR_TO_LEFT + index*(BAR_GAP + barWidth),
 				startY: item.height >= 0 ? margin + upLength - item.height + TO_TOP - 1 : margin + upLength + TO_TOP,
@@ -62,7 +63,7 @@ Bar.prototype = {
 				});
 
 				dom.style.display = 'block';
-				bar.fillColor = 'red';
+				bar.fillColor = hover_color;
 				element.style.cursor = 'pointer';
 				var x = utils.getPos().x + 20;
 				var y = utils.getPos().y + 20;

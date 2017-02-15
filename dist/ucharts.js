@@ -62,6 +62,8 @@
 
 	var expandShapes = __webpack_require__(7);
 
+	var textColor = __webpack_require__(8);
+
 	var Legend = __webpack_require__(9);
 
 	function UCharts(settings) {
@@ -88,13 +90,15 @@
 	  	height: this.height,
 	  	enableGlobalTranslate: this.enableGlobalTranslate
 	  });
-	  expandShapes(this.world);
+	  expandShapes(this.world, textColor);
 	  this.tooltip = new ToolTip();
 	  this.tooltip.init();
 	};
 
 	uchartsPrototype.setOption = function(option) {
-		this.option = option;
+		this.option = option,
+			world = this.world,
+			stage = this.stage;
 		var series = option.series,
 			xAxis = option.xAxis,
 			yAxis = option.yAxis,
@@ -108,11 +112,11 @@
 			return a.type > b.type;
 		});
 
-		var coord = this.world.coord({
+		var coord = world.coord({
 			startX: 0,
 			startY: 0,
-			width: this.world.width,
-			height: this.world.height,
+			width: world.width,
+			height: world.height,
 			xAxis: xAxis,
 			yAxis: {
 
@@ -128,16 +132,16 @@
 			changeIndex: false,
 			zindex: 0
 		});
-		var bar = new Bar(this.world, this.stage);
-		var line = new Line(this.world, this.stage);
+		var bar = new Bar(world, stage);
+		var line = new Line(world, stage);
 		
-		var legend = new Legend(this.world, this.stage);
+		var legend = new Legend(world, stage);
 		legend.init(series);
 
 		// calculate coordinates
 		if(xAxis && series) {
 			var _this = this;
-			this.stage.addChild(coord);
+			stage.addChild(coord);
 			series.forEach(function(item, index) {
 				switch(item.type) {
 					case 'bar':
@@ -150,7 +154,24 @@
 						return;
 				}
 			});
-			this.stage.show();
+			stage.show();
+			// var iiiii = 0;
+			// var tick = iiiii / 50;
+			// var a = stage.animate(function() {
+			// 	if(iiiii > 50) {
+			// 		stage.stop(a);
+			// 		return;
+			// 	}
+			// 	world.objects.filter(function(item) {
+			// 		return item.type === 'rectangle';
+			// 	}).forEach(function(item) {
+			// 		item.startY-=2;
+			// 		item.height+=2;
+
+			// 	});
+			// 	stage.redraw();
+			// 	iiiii ++;
+			// });
 		}
 	};
 
@@ -195,7 +216,7 @@
 
 	  LCL = function() {
 
-	    this.version = '1.3.4';
+	    this.version = '1.3.5';
 
 	    this.objects = [];
 
@@ -213,12 +234,14 @@
 
 	    this.images = [];
 
+	    this.pointerInnerArray = [];
+
 	    this.isDragging = false;
 
 	    this.eventTypes = ['mousedown', 'mouseup', 'mouseenter', 'mouseleave', 'mousemove', 'drag', 'dragend', 'dragin', 'dragout', 'drop'];
 
 	    this._event = new this.event(this);
-	    
+
 	    var _this = this;
 
 	    this.core = function(config) {
@@ -297,13 +320,13 @@
 	        _this.canvas.clearRect(0, 0, _this.width, _this.height);
 	      },
 
-	      animate: function(func, name) {
+	      animate: function(func) {
 	        _this._event.triggerEvents();
 	        var id = new Date().getTime();
 	        var _func = function() {
 	          func();
 	          _this[id] = requestAnimationFrame(_func);
-	        }
+	        };
 	        _func();
 	        return id;
 	      },
@@ -356,6 +379,16 @@
 	    var _this = this;
 
 	    var settingsData = {
+
+	      color: settings.color, // arc
+
+	      startX: settings.startX,
+
+	      startY: settings.startY,
+
+	      dash: settings.dash, // line
+
+	      offset: settings.offset ? settings.offset : 0, // line
 
 	      fillColor: settings.fillColor, // rectangle fillcolor
 
@@ -411,6 +444,7 @@
 
 	    // whether pointer is inner this shape
 	    var isPointInner = function(x, y) {
+	      var that = this;
 
 	      var ltx = this.fixed ? 0 : _this.transX;
 	      var lty = this.fixed ? 0 : _this.transY;
@@ -430,72 +464,79 @@
 	      var yBottom = y < this.startY + this.height + my + lty;
 
 	      switch(this.type) {
-	        case 'rectangle':
-	        case 'image':
-	        case 'text':
-	        case 'coord':
-	        case 'textColor':
-	          return !!(xRight && xLeft && yTop && yBottom);
-	        case 'arc':
-	          var cx = this.x, // center x
-	            cy = this.y, // center y
-	            pi = Math.PI,
-	            sa = this.startAngle < 0 ? 2*pi + pi/180*this.startAngle : pi/180*this.startAngle,
-	            ea = this.endAngle < 0 ? 2*pi + pi/180*this.endAngle : pi/180*this.endAngle,
-	            r = this.radius,
-	            dx = x - cx - mx -ltx,
-	            dy = y - cy - my - lty,
-	            isIn, dis;
-	          // Sector
-	          if(!isNaN(sa) && !isNaN(ea)) {
-	            var angle;
-	            // 4th quadrant
-	            if(dx >= 0 && dy >= 0) {
-	              
-	              if(dx === 0) {
-	                angle = pi/2;
-	              } else {
-	                angle = Math.atan( (dy / dx) );
-	              }
-	            }
-	            // 3th quadrant
-	            else if(dx <= 0 && dy >= 0) {
-	              if(dx === 0) {
-	                angle = pi;
-	              } else {
-	                angle = pi - Math.atan(dy / Math.abs(dx));
-	              }
-	            }
-	            // secend quadrant
-	            else if(dx <= 0 && dy <= 0) {
-	              if(dx === 0) {
-	                angle = pi;
-	              } else {
-	                angle = Math.atan(Math.abs(dy) / Math.abs(dx)) + pi;
-	              }
-	            }
-	            // first quadrant
-	            else if(dx >= 0 && dy<= 0) {
-	              if(dx === 0) {
-	                angle = pi*3/2;
-	              } else {
-	                angle = 2*pi - Math.atan(Math.abs(dy) / dx);
-	              }
-	            }
-	            dis = Math.sqrt( dx * dx + dy * dy );
-	            if(sa < ea) {
-	              isIn = !!(angle >= sa && angle <= ea && dis <= r);
+
+	      case 'rectangle':
+	      case 'image':
+	      case 'text':
+	      case 'coord':
+	        return !!(xRight && xLeft && yTop && yBottom);
+	      case 'arc':
+	        var cx = this.x, // center x
+	          cy = this.y, // center y
+	          pi = Math.PI,
+	          sa = this.startAngle < 0 ? 2*pi + pi/180*this.startAngle : pi/180*this.startAngle,
+	          ea = this.endAngle < 0 ? 2*pi + pi/180*this.endAngle : pi/180*this.endAngle,
+	          r = this.radius,
+	          dx = x - cx - mx -ltx,
+	          dy = y - cy - my - lty,
+	          isIn, dis;
+	        // Sector
+	        if(!isNaN(sa) && !isNaN(ea)) {
+	          var angle;
+	          // 4th quadrant
+	          if(dx >= 0 && dy >= 0) {
+	            if(dx === 0) {
+	              angle = pi/2;
 	            } else {
-	              isIn = !!( ( (angle >= 0 && angle <= ea) || (angle >= sa && angle <= 2*pi) ) && dis <= r);
+	              angle = Math.atan( (dy / dx) );
 	            }
 	          }
-	          // normal arc
-	          else {
-	            isIn = !!( Math.sqrt( dx * dx + dy * dy ) <= r );
+	          // 3th quadrant
+	          else if(dx <= 0 && dy >= 0) {
+	            if(dx === 0) {
+	              angle = pi;
+	            } else {
+	              angle = pi - Math.atan(dy / Math.abs(dx));
+	            }
 	          }
-	          return isIn;
-	        default:
-	          break;
+	          // secend quadrant
+	          else if(dx <= 0 && dy <= 0) {
+	            if(dx === 0) {
+	              angle = pi;
+	            } else {
+	              angle = Math.atan(Math.abs(dy) / Math.abs(dx)) + pi;
+	            }
+	          }
+	          // first quadrant
+	          else if(dx >= 0 && dy<= 0) {
+	            if(dx === 0) {
+	              angle = pi*3/2;
+	            } else {
+	              angle = 2*pi - Math.atan(Math.abs(dy) / dx);
+	            }
+	          }
+	          dis = Math.sqrt( dx * dx + dy * dy );
+	          if(sa < ea) {
+	            isIn = !!(angle >= sa && angle <= ea && dis <= r);
+	          } else {
+	            isIn = !!( ( (angle >= 0 && angle <= ea) || (angle >= sa && angle <= 2*pi) ) && dis <= r);
+	          }
+	        }
+	        // normal arc
+	        else {
+	          isIn = !!( Math.sqrt( dx * dx + dy * dy ) <= r );
+	        }
+	        return isIn;
+	      default:
+	        break;
+	      }
+
+	      // expand isPointerInner
+	      var arr = _this.pointerInnerArray;
+	      for(var i = 0; i < arr.length; i++) {
+	        if(that.type === arr[i].type) {
+	          return arr[i].isPointInner(that, x, y);
+	        }
 	      }
 	    };
 
@@ -535,13 +576,6 @@
 	      this.enableChangeIndex = true;
 	    };
 
-	    var fixed = function(bool) {
-	      if(!bool || typeof bool !== 'boolean') {
-	        return;
-	      }
-	      this.fixed = true;
-	    }
-
 	    return Object.assign({}, settingsData, {
 
 	      isDragging: false,
@@ -569,7 +603,6 @@
 	  };
 
 
-
 	// Source: src/shapes/rectangle.js
 
 	  ;(function() {// eslint-disable-line  
@@ -579,11 +612,7 @@
 	      var _this = this;
 
 	      var draw = function() {
-	        var canvas = _this.canvas,
-	          startX = this.startX = settings.startX,
-	          startY = this.startY = settings.startY,
-	          width = this.width = settings.width,
-	          height = this.height = settings.height;
+	        var canvas = _this.canvas;
 
 	        canvas.save();
 	        // canvas.translate( startX + width/2 + this.moveX, startY + height/2 + this.moveY);
@@ -594,7 +623,7 @@
 	          canvas.translate(-_this.transX, -_this.transY);
 	        }
 	        canvas.fillStyle = this.fillColor ? this.fillColor : '#000';
-	        canvas.fillRect(startX, startY, width, height);
+	        canvas.fillRect(this.startX, this.startY, this.width, this.height);
 	        canvas.restore();
 	      };
 
@@ -615,16 +644,17 @@
 	    var line = function(settings) {
 
 	      var _this = this;
+	      var canvas = _this.canvas,
+	        matrix = settings.matrix,
+	        lineWidth = settings.lineWidth,
+	        lineCap = settings.lineCap,
+	        lineJoin = settings.lineJoin,
+	        strokeColor = settings.strokeColor,
+	        smooth = settings.smooth;
+
+	      var totalLength;
 
 	      var draw = function() {
-	        var canvas = _this.canvas,
-	          matrix = settings.matrix,
-	          lineWidth = settings.lineWidth,
-	          dash = settings.dash,
-	          lineCap = settings.lineCap,
-	          lineJoin = settings.lineJoin,
-	          strokeColor = settings.strokeColor,
-	          smooth = settings.smooth;
 
 	        canvas.save();
 	        canvas.translate(-0.5, -0.5);
@@ -635,8 +665,9 @@
 	        canvas.lineWidth = lineWidth;
 	        canvas.strokeStyle = strokeColor;
 	        canvas.beginPath();
-	        if(dash && Object.prototype.toString.call(dash) === '[object Array]') {
-	          canvas.setLineDash(dash);
+	        canvas.lineDashOffset = this.offset;
+	        if(this.dash && Object.prototype.toString.call(this.dash) === '[object Array]') {
+	          canvas.setLineDash(this.dash);
 	        }
 	        if(lineCap) {
 	          canvas.lineCap = lineCap;
@@ -691,7 +722,8 @@
 
 	      return Object.assign({}, _this.display(settings), {
 	        type: 'line',
-	        draw: draw
+	        draw: draw,
+	        totalLength: totalLength
 	      });
 	    };
 
@@ -844,7 +876,6 @@
 	        var canvas = _this.canvas,
 	          x = this.x = settings.x,
 	          y = this.y = settings.y,
-	          color = this.color = settings.color,
 	          style = this.style = settings.style,
 	          startAngle = this.startAngle = settings.startAngle,
 	          endAngle = this.endAngle = settings.endAngle;
@@ -869,10 +900,10 @@
 	          canvas.arc(0, 0, this.radius, 0, Math.PI*2);
 	        }
 	        if(style === 'fill') {
-	          canvas.fillStyle = color;
+	          canvas.fillStyle = this.color;
 	          canvas.fill();
 	        } else {
-	          canvas.strokeStyle = color;
+	          canvas.strokeStyle = this.color;
 	          canvas.stroke();
 	        }
 	        canvas.closePath();
@@ -1094,18 +1125,17 @@
 	    return {
 
 	      getPos: function(e) {
-	        var e = e || event;
-	        var x = e.pageX - _this.element.offsetLeft,
-	          y = e.pageY - _this.element.offsetTop;
+	        var ev = e || event;
+	        var x = ev.pageX - _this.element.offsetLeft,
+	          y = ev.pageY - _this.element.offsetTop;
 	        return {
-	          x: x, 
+	          x: x,
 	          y: y
 	        };
 	      },
 
 	      triggerEvents: function() {
-	        
-	        var that = this;
+
 	        var hasEvents = _this.objects.some(function(item) {
 	          return !!item.events && Object.prototype.toString.call(item.events) === '[object Array]' && !item.isBg || item.enableDrag;
 	        });
@@ -1128,11 +1158,11 @@
 	      },
 
 	      mouseEnterOrMove: function() {
-	        var that = this, isDragging;
+	        var isDragging;
 	        _this.utils.bind(_this.element, 'mousemove', function(e_moveOrEnter) {
 	          var mX = _this._event.getPos(e_moveOrEnter).x;
 	          var mY = _this._event.getPos(e_moveOrEnter).y;
-	          
+
 	          isDragging = _this.objects.some(function(item) {
 	            return item.isDragging;
 	          });
@@ -1211,7 +1241,7 @@
 	      },
 
 	      mouseDown: function(e_down) {
-	        var that = this, whichIn, hasEventDrag, dragCb, dragEndCb;
+	        var that = this, whichIn, hasEventDrag, hasEventDragEnd, dragCb, dragEndCb;
 	        var hasDrags = _this.objects.some(function(item) {
 	          return !!item.enableDrag;
 	        });
@@ -1245,14 +1275,14 @@
 	          hasEventDrag = whichIn.length > 0 && whichIn[0].events && whichIn[0].events.some(function(item) {
 	            if(item.eventType === 'drag') {
 	              dragCb = item.callback;
-	            };
+	            }
 	            return item.eventType === 'drag';
 	          });
 
 	          hasEventDragEnd = whichIn.length > 0 && whichIn[0].events && whichIn[0].events.some(function(item) {
 	            if(item.eventType === 'dragend') {
 	              dragEndCb = item.callback;
-	            };
+	            }
 	            return item.eventType === 'dragend';
 	          });
 
@@ -1270,7 +1300,7 @@
 	            that.cacheX = mx;
 	            that.cacheY = my;
 	            whichIn[0].isDragging = true;
-	          }
+	          };
 
 	          var up_Event = function(e_up) {
 	            var uX = _this._event.getPos(e_up).x;
@@ -1339,13 +1369,167 @@
 	        _this.drawUtils.redraw();
 	      }
 
+	    };
+
+	  };
+
+	// Source: src/color.js
+
+	  LCL.prototype.color = {
+
+	    // converts hex to RGB
+	    hexToRGB: function(hex) {
+	      var rgb = [];
+
+	      hex = hex.substr(1);
+
+	      // converts #abc to #aabbcc
+	      if (hex.length === 3) {
+	        hex = hex.replace(/(.)/g, '$1$1');
+	      }
+
+	      hex.replace(/../g, function(color){
+	        rgb.push(parseInt(color, 0x10));
+	      });
+
+	      return {
+	        r: rgb[0],
+	        g: rgb[1],
+	        b: rgb[2],
+	        rgb: "rgb(" + rgb.join(",") + ")"
+	      };
+	    },
+
+	    // converts rgb to HSL
+	    rgbToHSL: function(r, g, b) {
+	      r /= 255, g /= 255, b /= 255;
+	      var max = Math.max(r, g, b),
+	        min = Math.min(r, g, b);
+	      var h, s, l = (max + min) / 2;
+
+	      if(max == min){
+	        h = s = 0; // achromatic
+	      }else{
+	        var d = max - min;
+	        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+	        switch(max){
+	        case r:
+	          h = (g - b) / d + (g < b ? 6 : 0);
+	          break;
+	        case g:
+	          h = (b - r) / d + 2;
+	          break;
+	        case b:
+	          h = (r - g) / d + 4;
+	          break;
+	        }
+	        h /= 6;
+	      }
+
+	      return {
+	        h: h,
+	        s: s,
+	        l: l,
+	        hsl: "hsl(" + h * 360 + ', ' + s * 100 + '%' + ', ' + l * 100 + '%' + ")"
+	      };
+	    },
+
+	    // converts hsl to RGB
+	    hslToRGB: function() {
+	    },
+
+	    // color lighten
+	    lighten: function(color, percent) {
+	      var hsl, h, s, l;
+	      if(!color || !percent || !/^[0-9]{1,2}%$/.test(percent)) {
+	        return;
+	      }
+	      hsl = this.getHsl(color);
+	      h = hsl.h;
+	      s = hsl.s;
+	      l = hsl.l * 100 + +percent.slice(0, -1);
+
+	      return "hsl(" + h * 360 + ', ' + s * 100 + '%' + ', ' + l + '%' + ")";
+	    },
+
+	    // color darken
+	    darken: function(color, percent) {
+	      var hsl, h, s, l;
+	      if(!color || !percent || !/^[0-9]{1,2}%$/.test(percent)) {
+	        return;
+	      }
+	      hsl = this.getHsl(color);
+	      h = hsl.h;
+	      s = hsl.s;
+	      l = hsl.l * 100 - +percent.slice(0, -1);
+	      return "hsl(" + h * 360 + ', ' + s * 100 + '%' + ', ' + l + '%' + ")";
+	    },
+
+	    isHex: function(color) {
+	      return /^#[a-fA-F0-9]{3}$|#[a-fA-F0-9]{6}$/.test(color);
+	    },
+
+	    isRgb: function(color) {
+	      return /^rgb\((\s*[0-5]{0,3}\s*,?){3}\)$/.test(color);
+	    },
+
+	    isRgba: function(color) {
+	      return /^rgba\((\s*[0-5]{0,3}\s*,?){3}[0-9.\s]*\)$/.test(color);
+	    },
+
+	    getRgb: function(color) {
+	      var rgb, r, g, b;
+	      if(this.isHex(color)) {
+	        rgb = this.hexToRGB(color);
+	        r = rgb.r;
+	        g = rgb.g;
+	        b = rgb.b;
+	      } else if(this.isRgb(color)) {
+	        rgb = color.slice(4, -1).split(',');
+	        r = rgb[0],
+	        g = rgb[1],
+	        b = rgb[2];
+	      }
+	      return {
+	        r: r,
+	        g: g,
+	        b: b
+	      };
+	    },
+
+	    getHsl: function(color) {
+	      var hsl, rgb, r, g, b, h, s, l;
+	      rgb = this.getRgb(color);
+	      r = rgb.r;
+	      g = rgb.g;
+	      b = rgb.b;
+
+	      hsl = this.rgbToHSL(r, g, b);
+	      h = hsl.h;
+	      s = hsl.s;
+	      l = hsl.l;
+	      return {
+	        h: h,
+	        s: s,
+	        l: l
+	      };
 	    }
 
 	  };
 
 	// Source: src/utils.js
-	  
+
 	  LCL.prototype.utils = {};
+
+	  LCL.prototype.utils.getPos = function(e) {
+	    var ev = e || event;
+	    var x = ev.pageX,
+	      y = ev.pageY;
+	    return {
+	      x: x,
+	      y: y
+	    };
+	  };
 
 	  LCL.prototype.utils.bind = function(target, eventType, handler) {
 	    try {
@@ -1391,24 +1575,24 @@
 
 	    ready: function(callback) {
 	      var that = this;
-	      this.imageList.forEach(function(img){  
-	        that.loadImg(img);  
+	      this.imageList.forEach(function(img){
+	        that.loadImg(img);
 	      });
 	      var timer = setInterval(function(){
 	        if(that.loadNum === that.imageList.length){
 	          clearInterval(timer);
 	          callback && callback();
-	        }  
+	        }
 	      }, 50);
 	    },
 
 	    loadImg: function(img) {
 	      var that = this;
-	      var timer = setInterval(function(){  
+	      var timer = setInterval(function(){
 	        if(img.complete === true){
-	          that.loadNum++;  
-	          clearInterval(timer);  
-	        }  
+	          that.loadNum++;
+	          clearInterval(timer);
+	        }
 	      }, 50);
 	    },
 
@@ -1449,7 +1633,7 @@
 	      calcMax = 10;
 	      numLength --;
 	    } else if(calcMax > 10) {
-	      var l = calcMax.toString().length
+	      var l = calcMax.toString().length;
 	      calcMax = calcMax / Math.pow(10, l - 1);
 	      numLength = numLength - l + 1;
 	    }
@@ -1488,8 +1672,8 @@
 	  };
 
 	  // adjustment accuracy
-	  LCL.prototype.utils.formatFloat = function(f) { 
-	    var m = Math.pow(10, 10); 
+	  LCL.prototype.utils.formatFloat = function(f) {
+	    var m = Math.pow(10, 10);
 	    return parseInt(f * m, 10) / m;
 	  };
 
@@ -1518,7 +1702,7 @@
 	  };
 
 	  // requestAnimationFrame polyfill
-	  ;(function() {
+	  (function() {
 	    var lastTime = 0;
 	    var vendors = ['ms', 'moz', 'webkit', 'o'];
 	    try {
@@ -1526,11 +1710,11 @@
 	        window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
 	        window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
 	      }
-	      if (!window.requestAnimationFrame) window.requestAnimationFrame = function(callback, element) {
+	      if (!window.requestAnimationFrame) window.requestAnimationFrame = function(callback) {
 	        var currTime = new Date().getTime();
 	        var timeToCall = Math.max(0, 16 - (currTime - lastTime));
 	        var id = window.setTimeout(function() {
-	            callback(currTime + timeToCall);
+	          callback(currTime + timeToCall);
 	        }, timeToCall);
 	        lastTime = currTime + timeToCall;
 	        return id;
@@ -1754,6 +1938,7 @@
 			var barInfos = this.getBarInfo(_series);
 
 			barInfos.forEach(function(item, i) {
+				var hover_color = world.color.lighten(_series.color, '10%');
 				var bar = world.rectangle({
 					startX: margin + xGapLength * i + BAR_TO_LEFT + index*(BAR_GAP + barWidth),
 					startY: item.height >= 0 ? margin + upLength - item.height + TO_TOP - 1 : margin + upLength + TO_TOP,
@@ -1775,7 +1960,7 @@
 					});
 
 					dom.style.display = 'block';
-					bar.fillColor = 'red';
+					bar.fillColor = hover_color;
 					element.style.cursor = 'pointer';
 					var x = utils.getPos().x + 20;
 					var y = utils.getPos().y + 20;
@@ -1863,11 +2048,15 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	var textColor = __webpack_require__(8);
 	var LCL = __webpack_require__(2);
 
-	function expand(world) {
-		LCL.prototype.textColor = textColor.bind(world);
+	function expand(world, expand) {
+		LCL.prototype[expand.name] = expand.shape.bind(world);
+		var isPointInner = expand.isPointInner.bind(world);
+		world.pointerInnerArray.push({
+			type: expand.name,
+			isPointInner: isPointInner
+		})
 	}
 
 	module.exports = expand;
@@ -1948,7 +2137,21 @@
 	  });
 	};
 
-	module.exports = textColor;
+	module.exports = {
+	  name: 'textColor',
+	  shape: textColor,
+	  isPointInner: function(_this, x, y) {
+	    var ltx = _this.fixed ? 0 : this.transX;
+	    var lty = _this.fixed ? 0 : this.transY;
+	    var mx = _this.moveX,
+	      my = _this.moveY;
+	    var xRight = x > _this.startX + mx + ltx;
+	    var xLeft = x < _this.startX + _this.width + mx + ltx;
+	    var yTop = y > _this.startY + my + lty;
+	    var yBottom = y < _this.startY + _this.height + my + lty;
+	    return !!(xRight && xLeft && yTop && yBottom);
+	  }
+	};
 
 /***/ },
 /* 9 */
@@ -1994,7 +2197,7 @@
 					_this.world.textColor({
 						startX: startX,
 						startY: startY,
-						label: '代码表',
+						label: item.name,
 						color: item.color,
 						type: item.type
 					}).config({

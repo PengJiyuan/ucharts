@@ -10,12 +10,6 @@
 			padding: 0;
 			overflow: hidden;
 		}
-		.main {
-			margin: 0;
-			width: 500px;
-			height: 500px;
-			background-color: #ccc;
-		}
 	</style>
 </head>
 <body>
@@ -41,7 +35,7 @@
 		series: [{
 			name: '北京',
 			type: 'bar',
-			color: '#009393',
+			color: 'rgb(125, 125, 225)',
 			data: [11358, 5622, 23333, 4444, 5555]
 		}, {
 			name: '深圳',
@@ -51,31 +45,35 @@
 		}, {
 			name: '广州',
 			type: 'bar',
-			color: 'black',
+			color: 'rgb(25, 125, 225)',
 			data: [14358, 2622, 11333, 8444, 4555]
 		}, {
 			name: '上海',
 			type: 'line',
 			color: '#9f35ff',
 			smooth: true,
+			dash: [5, 5],
 			data: [12358, 4622, 13333, 6444, 8555]
 		}, {
-			name: '广州',
+			name: '天津',
 			type: 'line',
-			color: '#003e3e',
+			color: 'rgb(25, 125, 325)',
 			smooth: true,
+			dash: [5, 5],
 			data: [14358, 2622, 11333, 8444, 4555]
 		}, {
-			name: '广州',
+			name: '重庆',
 			type: 'line',
-			color: '#003e3e',
+			color: 'rgb(25, 125, 325)',
+			dash: [5, 5],
 			smooth: true,
 			data: [2501, 2822, 13333, 1444, 2555]
 		}, {
-			name: 'dd',
+			name: '哈尔滨',
 			type: 'bar',
 			color: '#003e3e',
 			smooth: true,
+			dash: [5, 5],
 			data: [2601, 5822, 3333, 8444, 4555]
 		}],
 		boundaryGap: false,

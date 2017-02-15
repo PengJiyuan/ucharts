@@ -9,6 +9,8 @@ var ToolTip = require('./tooltip');
 
 var expandShapes = require('./expandshapes');
 
+var textColor = require('./shapes/text_color.js');
+
 var Legend = require('./legend');
 
 function UCharts(settings) {
@@ -35,13 +37,15 @@ uchartsPrototype.initStructure = function() {
   	height: this.height,
   	enableGlobalTranslate: this.enableGlobalTranslate
   });
-  expandShapes(this.world);
+  expandShapes(this.world, textColor);
   this.tooltip = new ToolTip();
   this.tooltip.init();
 };
 
 uchartsPrototype.setOption = function(option) {
-	this.option = option;
+	this.option = option,
+		world = this.world,
+		stage = this.stage;
 	var series = option.series,
 		xAxis = option.xAxis,
 		yAxis = option.yAxis,
@@ -55,11 +59,11 @@ uchartsPrototype.setOption = function(option) {
 		return a.type > b.type;
 	});
 
-	var coord = this.world.coord({
+	var coord = world.coord({
 		startX: 0,
 		startY: 0,
-		width: this.world.width,
-		height: this.world.height,
+		width: world.width,
+		height: world.height,
 		xAxis: xAxis,
 		yAxis: {
 
@@ -75,16 +79,16 @@ uchartsPrototype.setOption = function(option) {
 		changeIndex: false,
 		zindex: 0
 	});
-	var bar = new Bar(this.world, this.stage);
-	var line = new Line(this.world, this.stage);
+	var bar = new Bar(world, stage);
+	var line = new Line(world, stage);
 	
-	var legend = new Legend(this.world, this.stage);
+	var legend = new Legend(world, stage);
 	legend.init(series);
 
 	// calculate coordinates
 	if(xAxis && series) {
 		var _this = this;
-		this.stage.addChild(coord);
+		stage.addChild(coord);
 		series.forEach(function(item, index) {
 			switch(item.type) {
 				case 'bar':
@@ -97,7 +101,24 @@ uchartsPrototype.setOption = function(option) {
 					return;
 			}
 		});
-		this.stage.show();
+		stage.show();
+		// var iiiii = 0;
+		// var tick = iiiii / 50;
+		// var a = stage.animate(function() {
+		// 	if(iiiii > 50) {
+		// 		stage.stop(a);
+		// 		return;
+		// 	}
+		// 	world.objects.filter(function(item) {
+		// 		return item.type === 'rectangle';
+		// 	}).forEach(function(item) {
+		// 		item.startY-=2;
+		// 		item.height+=2;
+
+		// 	});
+		// 	stage.redraw();
+		// 	iiiii ++;
+		// });
 	}
 };
 
